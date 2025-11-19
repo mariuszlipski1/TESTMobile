@@ -9,6 +9,7 @@ import { RootStackParamList, MainTabParamList } from '../types';
 
 // Screens
 import DashboardScreen from '../screens/DashboardScreen';
+import PlanScreen from '../screens/PlanScreen';
 import SectionScreen from '../screens/SectionScreen';
 import NoteDetailScreen from '../screens/NoteDetailScreen';
 import NoteEditorScreen from '../screens/NoteEditorScreen';
@@ -58,7 +59,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="Plan"
-        component={SectionScreen}
+        component={PlanScreen}
         initialParams={{ projectId: 'default' }}
         options={{
           tabBarLabel: 'Plan',
