@@ -113,12 +113,34 @@ export interface AISuggestion {
   dismissed: boolean;
 }
 
-// Checklista inspekcji
-export interface ChecklistItem {
+// Checklista inspekcji - punkt
+export interface InspectionChecklistItem {
   id: string;
-  text: string;
+  category: 'hydraulika' | 'elektryka' | 'konstrukcja' | 'stolarka' | 'wentylacja' | 'inne';
+  task: string;
+  priority: 'high' | 'medium' | 'low';
   completed: boolean;
-  category?: string;
+  completedAt?: string;
+  notes?: string;
+  photoIds?: string[];
+}
+
+// Pełna checklista inspekcji
+export interface InspectionChecklist {
+  items: InspectionChecklistItem[];
+  generatedAt: string;
+  completedCount: number;
+  totalCount: number;
+}
+
+// Zdjęcie inspekcyjne
+export interface InspectionPhoto {
+  id: string;
+  projectId: string;
+  photoUrl: string;
+  thumbnailUrl?: string;
+  checklistItemId?: string;
+  createdAt: string;
 }
 
 // Dane właściwości (do AI generacji checklisty)
@@ -127,7 +149,25 @@ export interface PropertyData {
   year: number;
   floor: number;
   hasElevator: boolean;
+  hasParking: boolean;
   marketType: MarketType;
+}
+
+// Rozszerzone dane projektu z inspekcją
+export interface ProjectWithInspection extends Project {
+  yearBuilt?: number;
+  hasParking?: boolean;
+  floorPlanUrl?: string;
+  inspectionChecklist?: InspectionChecklist;
+  checklistProgress: number;
+}
+
+// Legacy ChecklistItem for backwards compatibility
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  category?: string;
 }
 
 // Request/Response types

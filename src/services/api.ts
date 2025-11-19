@@ -12,6 +12,11 @@ import {
   CreateExpenseRequest,
   ApiResponse,
   PaginatedResponse,
+  InspectionChecklist,
+  InspectionChecklistItem,
+  InspectionPhoto,
+  PropertyData,
+  ProjectWithInspection,
 } from '../types';
 
 // Supabase configuration - replace with your actual values
@@ -337,6 +342,182 @@ export const storageApi = {
       return createResponse(true);
     } catch (error) {
       return createResponse(false, (error as Error).message, 500);
+    }
+  },
+};
+
+// Inspection API
+export const inspectionApi = {
+  // Save property data and generate checklist
+  async savePropertyData(
+    projectId: string,
+    propertyData: PropertyData
+  ): Promise<ApiResponse<ProjectWithInspection | null>> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({
+          area: propertyData.area,
+          floor: propertyData.floor,
+          year_built: propertyData.year,
+          has_elevator: propertyData.hasElevator,
+          has_parking: propertyData.hasParking,
+          market_type: propertyData.marketType,
+        })
+        .eq('id', projectId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data);
+    } catch (error) {
+      return createResponse(null, (error as Error).message, 500);
+    }
+  },
+
+  // Save inspection checklist
+  async saveChecklist(
+    projectId: string,
+    checklist: InspectionChecklist
+  ): Promise<ApiResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          inspection_checklist: checklist,
+          checklist_progress: checklist.completedCount,
+        })
+        .eq('id', projectId);
+
+      if (error) throw error;
+      return createResponse(true);
+    } catch (error) {
+      return createResponse(false, (error as Error).message, 500);
+    }
+  },
+
+  // Get inspection checklist
+  async getChecklist(projectId: string): Promise<ApiResponse<InspectionChecklist | null>> {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('inspection_checklist')
+        .eq('id', projectId)
+        .single();
+
+      if (error) throw error;
+      return createResponse(data?.inspection_checklist || null);
+    } catch (error) {
+      return createResponse(null, (error as Error).message, 500);
+    }
+  },
+
+  // Upload floor plan
+  async uploadFloorPlan(
+    projectId: string,
+    fileUri: string,
+    fileName: string
+  ): Promise<ApiResponse<string | null>> {
+    try {
+      // In real implementation, convert URI to blob and upload
+      const path = `floor-plans/${projectId}/${fileName}`;
+
+      // For now, just update the project with a placeholder URL
+      const { error } = await supabase
+        .from('projects')
+        .update({ floor_plan_url: path })
+        .eq('id', projectId);
+
+      if (error) throw error;
+      return createResponse(path);
+    } catch (error) {
+      return createResponse(null, (error as Error).message, 500);
+    }
+  },
+
+  // Get inspection photos
+  async getPhotos(projectId: string): Promise<ApiResponse<InspectionPhoto[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('inspection_photos')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return createResponse(data || []);
+    } catch (error) {
+      return createResponse([], (error as Error).message, 500);
+    }
+  },
+
+  // Add inspection photo
+  async addPhoto(
+    projectId: string,
+    photoUrl: string,
+    checklistItemId?: string
+  ): Promise<ApiResponse<InspectionPhoto | null>> {
+    try {
+      const { data, error } = await supabase
+        .from('inspection_photos')
+        .insert({
+          project_id: projectId,
+          photo_url: photoUrl,
+          checklist_item_id: checklistItemId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data);
+    } catch (error) {
+      return createResponse(null, (error as Error).message, 500);
+    }
+  },
+
+  // Delete inspection photo
+  async deletePhoto(photoId: string): Promise<ApiResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('inspection_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) throw error;
+      return createResponse(true);
+    } catch (error) {
+      return createResponse(false, (error as Error).message, 500);
+    }
+  },
+
+  // Generate AI checklist (mock - in real app, call backend which calls Claude)
+  async generateChecklist(
+    propertyData: PropertyData
+  ): Promise<ApiResponse<InspectionChecklistItem[]>> {
+    try {
+      // This would call your backend which then calls Claude API
+      // For now, return mock data
+      const mockItems: InspectionChecklistItem[] = [
+        {
+          id: '1',
+          category: 'hydraulika',
+          task: 'Sprawdź stan pionów wodno-kanalizacyjnych',
+          priority: 'high',
+          completed: false,
+        },
+        {
+          id: '2',
+          category: 'elektryka',
+          task: 'Zweryfikuj typ instalacji (aluminium/miedź)',
+          priority: 'high',
+          completed: false,
+        },
+        // More items would be generated by AI based on property data
+      ];
+
+      return createResponse(mockItems);
+    } catch (error) {
+      return createResponse([], (error as Error).message, 500);
     }
   },
 };
