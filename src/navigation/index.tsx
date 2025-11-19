@@ -6,6 +6,7 @@ import { View, Text, StyleSheet } from 'react-native';
 
 import { colors, sectionConfig } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
+import { FloatingActionButton } from '../components';
 
 // Screens
 import DashboardScreen from '../screens/DashboardScreen';
@@ -29,8 +30,8 @@ const TabIcon = ({
   label: string;
 }) => (
   <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-    <Text style={[styles.tabIconText, { color }]}>
-      {label.charAt(0)}
+    <Text style={styles.tabIconText}>
+      {label}
     </Text>
   </View>
 );
@@ -38,6 +39,73 @@ const TabIcon = ({
 // Main Tab Navigator
 function MainTabs() {
   return (
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary.main,
+          tabBarInactiveTintColor: colors.text.tertiary,
+          tabBarStyle: styles.tabBar,
+          tabBarLabelStyle: styles.tabBarLabel,
+        }}
+      >
+        <Tab.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon color={color} focused={focused} label="🏠" />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Plan"
+          component={PlanScreen}
+          initialParams={{ projectId: 'default' }}
+          options={{
+            tabBarLabel: 'Plan',
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon color={color} focused={focused} label="📋" />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Electrical"
+          component={SectionScreen}
+          initialParams={{ projectId: 'default' }}
+          options={{
+            tabBarLabel: 'Elektryka',
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon color={color} focused={focused} label="⚡" />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Plumbing"
+          component={SectionScreen}
+          initialParams={{ projectId: 'default' }}
+          options={{
+            tabBarLabel: 'Hydraul.',
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon color={color} focused={focused} label="💧" />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Costs"
+          component={CostsScreen}
+          initialParams={{ projectId: 'default' }}
+          options={{
+            tabBarLabel: 'Koszty',
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon color={color} focused={focused} label="💰" />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+      <FloatingActionButton />
+    </View>
     <Tab.Navigator
       screenOptions={{
         headerShown: false,

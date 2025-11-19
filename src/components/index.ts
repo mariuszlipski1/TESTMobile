@@ -2,6 +2,7 @@ export { default as PropertyDetailsForm } from './PropertyDetailsForm';
 export { default as FileUploadZone } from './FileUploadZone';
 export { default as AIInspectionChecklist } from './AIInspectionChecklist';
 export { default as InspectionPhotoGallery } from './InspectionPhotoGallery';
+export { default as FloatingActionButton } from './FloatingActionButton';
 
 // Sekcje 2-5: Branże remontowe
 export { default as ContractorNotesEditor } from './ContractorNotesEditor';
