@@ -210,3 +210,84 @@ export const useAISuggestionsStore = create<AISuggestionsStore>((set) => ({
   })),
   setLoading: (loading) => set({ loading }),
 }));
+
+// Expenses Store
+interface ExpensesStore {
+  expenses: Expense[];
+  loading: boolean;
+  error: string | null;
+
+  setExpenses: (expenses: Expense[]) => void;
+  addExpense: (expense: Expense) => void;
+  updateExpense: (expenseId: string, updates: Partial<Expense>) => void;
+  deleteExpense: (expenseId: string) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+export const useExpensesStore = create<ExpensesStore>((set) => ({
+  expenses: [],
+  loading: false,
+  error: null,
+
+  setExpenses: (expenses) => set({ expenses }),
+  addExpense: (expense) => set((state) => ({
+    expenses: [expense, ...state.expenses],
+  })),
+  updateExpense: (expenseId, updates) => set((state) => ({
+    expenses: state.expenses.map((e) =>
+      e.id === expenseId ? { ...e, ...updates } : e
+    ),
+  })),
+  deleteExpense: (expenseId) => set((state) => ({
+    expenses: state.expenses.filter((e) => e.id !== expenseId),
+  })),
+  setLoading: (loading) => set({ loading }),
+  setError: (error) => set({ error }),
+}));
+
+// Budget Summary Store (agregacja danych z sekcji)
+interface BudgetSummaryItem {
+  sectionType: SectionType;
+  planned: number;
+  actual: number;
+  contractor?: string;
+}
+
+interface BudgetSummaryStore {
+  summaryItems: BudgetSummaryItem[];
+  totalPlanned: number;
+  totalActual: number;
+  loading: boolean;
+
+  setSummaryItems: (items: BudgetSummaryItem[]) => void;
+  updateSummaryItem: (sectionType: SectionType, updates: Partial<BudgetSummaryItem>) => void;
+  setLoading: (loading: boolean) => void;
+}
+
+export const useBudgetSummaryStore = create<BudgetSummaryStore>((set, get) => ({
+  summaryItems: [
+    { sectionType: 'electrical', planned: 30000, actual: 32400, contractor: 'ElektroPro' },
+    { sectionType: 'plumbing', planned: 15000, actual: 14200, contractor: 'HydroMax' },
+    { sectionType: 'carpentry', planned: 20000, actual: 18500 },
+    { sectionType: 'finishing', planned: 25000, actual: 2400 },
+  ],
+  totalPlanned: 90000,
+  totalActual: 67500,
+  loading: false,
+
+  setSummaryItems: (items) => {
+    const totalPlanned = items.reduce((sum, item) => sum + item.planned, 0);
+    const totalActual = items.reduce((sum, item) => sum + item.actual, 0);
+    set({ summaryItems: items, totalPlanned, totalActual });
+  },
+  updateSummaryItem: (sectionType, updates) => set((state) => {
+    const newItems = state.summaryItems.map((item) =>
+      item.sectionType === sectionType ? { ...item, ...updates } : item
+    );
+    const totalPlanned = newItems.reduce((sum, item) => sum + item.planned, 0);
+    const totalActual = newItems.reduce((sum, item) => sum + item.actual, 0);
+    return { summaryItems: newItems, totalPlanned, totalActual };
+  }),
+  setLoading: (loading) => set({ loading }),
+}));
