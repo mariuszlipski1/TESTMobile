@@ -91,6 +91,28 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
+        name="Carpentry"
+        component={SectionScreen}
+        initialParams={{ projectId: 'default' }}
+        options={{
+          tabBarLabel: 'Stolarka',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon color={color} focused={focused} label="S" />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Finishing"
+        component={SectionScreen}
+        initialParams={{ projectId: 'default' }}
+        options={{
+          tabBarLabel: 'Wykończ.',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon color={color} focused={focused} label="W" />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Costs"
         component={CostsScreen}
         initialParams={{ projectId: 'default' }}

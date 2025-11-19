@@ -237,11 +237,15 @@ export default function SectionScreen() {
 
   // Determine section type from route name
   const routeName = route.name.toLowerCase();
-  const sectionType: SectionType = routeName === 'plan' ? 'plan' :
-    routeName === 'electrical' ? 'electrical' :
-    routeName === 'plumbing' ? 'plumbing' :
-    routeName === 'carpentry' ? 'carpentry' :
-    routeName === 'finishing' ? 'finishing' : 'electrical';
+  const sectionTypeMap: Record<string, SectionType> = {
+    plan: 'plan',
+    electrical: 'electrical',
+    plumbing: 'plumbing',
+    carpentry: 'carpentry',
+    finishing: 'finishing',
+    costs: 'costs',
+  };
+  const sectionType: SectionType = sectionTypeMap[routeName] || 'electrical';
 
   const config = sectionConfig[sectionType];
   const projectId = (route.params as { projectId?: string })?.projectId || 'default';
