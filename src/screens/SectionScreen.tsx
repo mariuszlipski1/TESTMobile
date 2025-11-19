@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, spacing, typography, borderRadius, shadows, sectionConfig } from '../theme';
 import { useNotesStore, useEstimatesStore } from '../store';
-import { Note, RootStackParamList, SectionType } from '../types';
+import { Note, RootStackParamList, SectionType, Estimate } from '../types';
+import { AIChatPanel, EstimateUploader, EstimateComparison } from '../components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -155,28 +157,79 @@ const NotesList = ({
 };
 
 // Estimates List
-const EstimatesList = ({ sectionId }: { sectionId: string }) => {
+const EstimatesList = ({
+  sectionId,
+  projectId,
+  sectionColor,
+  onShowComparison,
+  onShowUploader,
+}: {
+  sectionId: string;
+  projectId: string;
+  sectionColor: string;
+  onShowComparison: () => void;
+  onShowUploader: () => void;
+}) => {
   const { estimatesBySection } = useEstimatesStore();
   const estimates = estimatesBySection[sectionId] || [];
 
   // Mock data for demo
-  const mockEstimates = [
+  const mockEstimates: Estimate[] = estimates.length > 0 ? estimates : [
     {
       id: '1',
+      sectionId,
+      projectId,
       contractorName: 'ElektroPro Sp. z o.o.',
+      fileUrl: '',
       totalAmount: 28500,
+      items: [
+        { id: '1', name: 'Wymiana tablicy rozdzielczej', quantity: 1, unit: 'szt', unitPrice: 3500, totalPrice: 3500 },
+        { id: '2', name: 'Przewody YDY 3x2.5', quantity: 150, unit: 'm', unitPrice: 8, totalPrice: 1200 },
+      ],
       isAccepted: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       id: '2',
+      sectionId,
+      projectId,
       contractorName: 'Pan Janusz - Elektryka',
+      fileUrl: '',
       totalAmount: 32000,
+      items: [
+        { id: '1', name: 'Wymiana tablicy rozdzielczej', quantity: 1, unit: 'szt', unitPrice: 4000, totalPrice: 4000 },
+        { id: '2', name: 'Przewody YDY 3x2.5', quantity: 180, unit: 'm', unitPrice: 10, totalPrice: 1800 },
+      ],
       isAccepted: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000).toISOString(),
     },
   ];
 
   return (
-    <View style={styles.estimatesList}>
+    <ScrollView style={styles.estimatesList} showsVerticalScrollIndicator={false}>
+      {/* Action Buttons */}
+      <View style={styles.estimateActions}>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: sectionColor }]}
+          onPress={onShowUploader}
+        >
+          <Text style={styles.actionBtnText}>+ Dodaj wycenę</Text>
+        </TouchableOpacity>
+        {mockEstimates.length >= 2 && (
+          <TouchableOpacity
+            style={[styles.actionBtnSecondary, { borderColor: sectionColor }]}
+            onPress={onShowComparison}
+          >
+            <Text style={[styles.actionBtnSecondaryText, { color: sectionColor }]}>
+              Porównaj wyceny
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Estimates List */}
       {mockEstimates.map((estimate) => (
         <TouchableOpacity key={estimate.id} style={styles.estimateItem}>
           <View style={styles.estimateHeader}>
@@ -190,12 +243,27 @@ const EstimatesList = ({ sectionId }: { sectionId: string }) => {
           <Text style={styles.estimateAmount}>
             {estimate.totalAmount.toLocaleString()} zł
           </Text>
-          <TouchableOpacity style={styles.analyzeBtn}>
-            <Text style={styles.analyzeBtnText}>Analizuj z AI</Text>
+          <View style={styles.estimateItemsPreview}>
+            <Text style={styles.estimateItemsCount}>
+              {estimate.items.length} pozycji w wycenie
+            </Text>
+          </View>
+          <TouchableOpacity style={[styles.analyzeBtn, { backgroundColor: sectionColor + '15' }]}>
+            <Text style={[styles.analyzeBtnText, { color: sectionColor }]}>Analizuj z AI</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       ))}
-    </View>
+
+      {mockEstimates.length === 0 && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateIcon}>📄</Text>
+          <Text style={styles.emptyStateText}>Brak wycen</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Dodaj pierwszą wycenę od wykonawcy
+          </Text>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
@@ -234,17 +302,59 @@ export default function SectionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
   const [activeTab, setActiveTab] = useState<'notes' | 'estimates' | 'ai'>('notes');
+  const [showUploader, setShowUploader] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Determine section type from route name
   const routeName = route.name.toLowerCase();
-  const sectionType: SectionType = routeName === 'plan' ? 'plan' :
-    routeName === 'electrical' ? 'electrical' :
-    routeName === 'plumbing' ? 'plumbing' :
-    routeName === 'carpentry' ? 'carpentry' :
-    routeName === 'finishing' ? 'finishing' : 'electrical';
+  const sectionTypeMap: Record<string, SectionType> = {
+    plan: 'plan',
+    electrical: 'electrical',
+    plumbing: 'plumbing',
+    carpentry: 'carpentry',
+    finishing: 'finishing',
+    costs: 'costs',
+  };
+  const sectionType: SectionType = sectionTypeMap[routeName] || 'electrical';
 
   const config = sectionConfig[sectionType];
   const projectId = (route.params as { projectId?: string })?.projectId || 'default';
+
+  // Mock estimates for comparison
+  const mockEstimates: Estimate[] = [
+    {
+      id: '1',
+      sectionId: sectionType,
+      projectId,
+      contractorName: 'ElektroPro Sp. z o.o.',
+      fileUrl: '',
+      totalAmount: 28500,
+      items: [
+        { id: '1', name: 'Wymiana tablicy rozdzielczej', quantity: 1, unit: 'szt', unitPrice: 3500, totalPrice: 3500 },
+        { id: '2', name: 'Przewody YDY 3x2.5', quantity: 150, unit: 'm', unitPrice: 8, totalPrice: 1200 },
+        { id: '3', name: 'Gniazdka elektryczne', quantity: 30, unit: 'szt', unitPrice: 45, totalPrice: 1350 },
+      ],
+      isAccepted: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      sectionId: sectionType,
+      projectId,
+      contractorName: 'Pan Janusz - Elektryka',
+      fileUrl: '',
+      totalAmount: 32000,
+      items: [
+        { id: '1', name: 'Wymiana tablicy rozdzielczej', quantity: 1, unit: 'szt', unitPrice: 4000, totalPrice: 4000 },
+        { id: '2', name: 'Przewody YDY 3x2.5', quantity: 180, unit: 'm', unitPrice: 10, totalPrice: 1800 },
+        { id: '3', name: 'Gniazdka elektryczne', quantity: 35, unit: 'szt', unitPrice: 50, totalPrice: 1750 },
+      ],
+      isAccepted: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -269,8 +379,22 @@ export default function SectionScreen() {
         {activeTab === 'notes' && (
           <NotesList sectionId={sectionType} projectId={projectId} />
         )}
-        {activeTab === 'estimates' && <EstimatesList sectionId={sectionType} />}
-        {activeTab === 'ai' && <AIPanel sectionType={sectionType} />}
+        {activeTab === 'estimates' && (
+          <EstimatesList
+            sectionId={sectionType}
+            projectId={projectId}
+            sectionColor={config.color}
+            onShowComparison={() => setShowComparison(true)}
+            onShowUploader={() => setShowUploader(true)}
+          />
+        )}
+        {activeTab === 'ai' && (
+          <AIChatPanel
+            sectionType={sectionType}
+            sectionColor={config.color}
+            projectData={{ area: 65, year: 1985, floor: 3 }}
+          />
+        )}
       </View>
 
       {/* FAB */}
@@ -285,6 +409,60 @@ export default function SectionScreen() {
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+      {/* Estimate Uploader Modal */}
+      <Modal
+        visible={showUploader}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowUploader(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Dodaj wycenę</Text>
+            <TouchableOpacity onPress={() => setShowUploader(false)}>
+              <Text style={styles.modalClose}>Zamknij</Text>
+            </TouchableOpacity>
+          </View>
+          <EstimateUploader
+            sectionId={sectionType}
+            projectId={projectId}
+            sectionColor={config.color}
+            onEstimateCreated={(estimate) => {
+              console.log('Estimate created:', estimate);
+              setShowUploader(false);
+            }}
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* Estimate Comparison Modal */}
+      <Modal
+        visible={showComparison}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowComparison(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Porównaj wyceny</Text>
+            <TouchableOpacity onPress={() => setShowComparison(false)}>
+              <Text style={styles.modalClose}>Zamknij</Text>
+            </TouchableOpacity>
+          </View>
+          <EstimateComparison
+            estimates={mockEstimates}
+            sectionColor={config.color}
+            onAccept={(estimateId) => {
+              console.log('Accepted estimate:', estimateId);
+              setShowComparison(false);
+            }}
+            onViewDetails={(estimateId) => {
+              console.log('View details:', estimateId);
+            }}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -535,5 +713,65 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.text.inverse,
     fontWeight: '300',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
+  },
+  modalClose: {
+    fontSize: typography.fontSize.md,
+    color: colors.primary.main,
+    fontWeight: typography.fontWeight.medium,
+  },
+  // Estimate action buttons
+  estimateActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+  },
+  actionBtnText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.inverse,
+  },
+  actionBtnSecondary: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  actionBtnSecondaryText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  // Estimate items preview
+  estimateItemsPreview: {
+    marginBottom: spacing.md,
+  },
+  estimateItemsCount: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
   },
 });
